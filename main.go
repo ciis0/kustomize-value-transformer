@@ -2,8 +2,7 @@ package main
 
 import (
 	"bytes"
-	"fmt"
-	"github.com/Masterminds/sprig"
+	"github.com/Masterminds/sprig/v3"
 	"log"
 	"os"
 	"sigs.k8s.io/kustomize/kyaml/kio"
