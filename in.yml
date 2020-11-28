@@ -5,6 +5,7 @@ metadata:
   labels:
     app: nginx
     cust: §(( .foo ))
+    cust2: §(( .bar ))
 spec:
   replicas: 3
   selector:

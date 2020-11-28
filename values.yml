@@ -1,0 +1,8 @@
+apiVersion: kustomize.atos.net/v1
+kind: ValueTransformer
+values:
+  foo: 199
+  bar: |-
+    please
+    go
+    away

@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"github.com/Masterminds/sprig/v3"
+	"io/ioutil"
 	"log"
 	"os"
 	"sigs.k8s.io/kustomize/kyaml/kio"
@@ -16,10 +17,25 @@ import (
 // https://pkg.go.dev/sigs.k8s.io/kustomize/kyaml@v0.10.1/kio#example-package
 func main() {
 
+	yamlFile, err := ioutil.ReadFile(os.Args[1])
+	if err != nil {
+		panic(err)
+	}
+
+	v := Visitor{}
+
+	err = yaml.Unmarshal(yamlFile, &v)
+	if err != nil {
+		panic(err)
+	}
+
 	fn := kio.FilterFunc(func(operand []*yaml.RNode) ([]*yaml.RNode, error) {
+
 		for i := range operand {
 			resource := operand[i]
-			_, err := Walker(resource)
+			_, err := walk.Walker{
+				Visitor: v,
+				Sources: []*yaml.RNode{resource}}.Walk()
 			if err != nil {
 				return nil, err
 			}
@@ -27,7 +43,7 @@ func main() {
 		return operand, nil
 	})
 
-	err := kio.Pipeline{
+	err = kio.Pipeline{
 		Inputs:  []kio.Reader{&kio.ByteReader{Reader: os.Stdin}},
 		Filters: []kio.Filter{fn},
 		Outputs: []kio.Writer{kio.ByteWriter{Writer: os.Stdout}},
@@ -38,12 +54,8 @@ func main() {
 
 }
 
-type Visitor struct{}
-
-func Walker(rn *yaml.RNode) (*yaml.RNode, error) {
-	return walk.Walker{
-		Visitor: Visitor{},
-		Sources: []*yaml.RNode{rn}}.Walk()
+type Visitor struct {
+	Values map[string]string `yaml:"values"`
 }
 
 func (m Visitor) VisitScalar(nodes walk.Sources, _ *openapi.ResourceSchema) (*yaml.RNode, error) {
@@ -57,7 +69,7 @@ func (m Visitor) VisitScalar(nodes walk.Sources, _ *openapi.ResourceSchema) (*ya
 		return nil, err
 	}
 
-	err = tmpl.Execute(buf, map[string]string{"foo": "hello\nthere\nstranger"})
+	err = tmpl.Execute(buf, m.Values)
 
 	if err != nil {
 		return nil, err
